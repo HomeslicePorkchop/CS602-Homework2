@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Database Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+
+    <div class="max-w-4xl mx-auto p-6">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-blue-600">Restaurant Database Manager</h1>
+            <p class="text-gray-500 mt-1">Find your new spot!</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="flex justify-center space-x-2 mb-6">
+            <button onclick="switchTab('search')" id="btn-search" class="px-5 py-2 font-semibold rounded-lg bg-blue-600 text-white shadow">Search ('S')</button>
+            <button onclick="switchTab('add')" id="btn-add" class="px-5 py-2 font-semibold rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">Add / Update ('A')</button>
+            <button onclick="switchTab('delete')" id="btn-delete" class="px-5 py-2 font-semibold rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">Delete ('D')</button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6">
+
+            <!-- SEARCH TAB -->
+            <div id="tab-search" class="space-y-6">
+                <h2 class="text-xl font-bold text-gray-700">Search Restaurants</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Search Field</label>
+                        <select id="search-field" class="w-full border rounded-lg p-2">
+                            <option value="name">Restaurant Name</option>
+                            <option value="borough">Borough</option>
+                            <option value="cuisine">Cuisine</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Search Query</label>
+                        <input type="text" id="search-query" placeholder="e.g., Brooklyn, Italian..." class="w-full border rounded-lg p-2">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-2">Select Visible Fields (Projection):</label>
+                    <div class="flex flex-wrap gap-4 text-sm">
+                        <label><input type="checkbox" class="proj-field" value="name" checked> Name</label>
+                        <label><input type="checkbox" class="proj-field" value="borough" checked> Borough</label>
+                        <label><input type="checkbox" class="proj-field" value="cuisine" checked> Cuisine</label>
+                        <label><input type="checkbox" class="proj-field" value="restaurant_id" checked> ID</label>
+                        <label><input type="checkbox" class="proj-field" value="address" checked> Address</label>
+                        <label><input type="checkbox" class="proj-field" value="average_score" checked> Rating (Avg Score)</label>
+                        <label><input type="checkbox" class="proj-field" value="grades"> Grades History</label>
+                    </div>
+                </div>
+
+                <button onclick="performSearch()" class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700">Search Database</button>
+                <div id="search-results" class="mt-6 space-y-4"></div>
+            </div>
+
+            <!-- ADD / UPDATE TAB -->
+            <div id="tab-add" class="hidden space-y-6">
+                <h2 class="text-xl font-bold text-gray-700">Add or Update Restaurant</h2>
+                <p class="text-sm text-gray-500">Enter a Restaurant ID. If it exists, it will switch to Update mode.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Restaurant ID *</label>
+                        <input type="text" id="upsert-id" placeholder="e.g., 30075445" oninput="checkRestaurantExists()" class="w-full border rounded-lg p-2">
+                        <span id="id-status" class="text-xs font-semibold mt-1 block"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Restaurant Name *</label>
+                        <input type="text" id="upsert-name" placeholder="e.g., Morris Park Bake Shop" class="w-full border rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Building Number *</label>
+                        <input type="text" id="upsert-building" placeholder="e.g., 1007" class="w-full border rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Street Name *</label>
+                        <input type="text" id="upsert-street" placeholder="e.g., Morris Park Ave" class="w-full border rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Zipcode *</label>
+                        <input type="text" id="upsert-zipcode" placeholder="e.g., 10462" class="w-full border rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Cuisine (Optional)</label>
+                        <input type="text" id="upsert-cuisine" placeholder="e.g., Bakery" class="w-full border rounded-lg p-2">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Borough (Optional)</label>
+                        <input type="text" id="upsert-borough" placeholder="e.g., Bronx" class="w-full border rounded-lg p-2">
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="submitUpsert()" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700">Submit Entry</button>
+                    <button onclick="resetUpsertForm()" class="px-4 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400">Refresh / Clear</button>
+                </div>
+                <div id="upsert-feedback" class="text-center font-medium text-sm"></div>
+
+                <!-- GRADE LOGGING SUB-SECTION (Visible only in Update mode) -->
+                <div id="grade-section" class="hidden border-t pt-4 mt-6 space-y-4">
+                    <h3 class="font-bold text-gray-700">Log New Inspection Grade (Immutable)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Grade Letter</label>
+                            <input type="text" id="new-grade-letter" placeholder="e.g., A" class="w-full border rounded-lg p-2 uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Score Number</label>
+                            <input type="number" id="new-grade-score" placeholder="e.g., 5" class="w-full border rounded-lg p-2">
+                        </div>
+                    </div>
+                    <button onclick="submitNewGrade()" class="w-full bg-amber-600 text-white py-2 rounded-lg font-semibold hover:bg-amber-700">Log Permanent Grade Entry</button>
+                    <div id="grade-feedback" class="text-center font-medium text-sm"></div>
+                </div>
+            </div>
+
+            <!-- DELETE TAB -->
+            <div id="tab-delete" class="hidden space-y-6">
+                <h2 class="text-xl font-bold text-gray-700">Soft Delete Restaurant</h2>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Enter Restaurant ID to Delete</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="delete-id" placeholder="e.g., 40356483" oninput="checkDeleteIdInput()" class="flex-1 border rounded-lg p-2">
+                        <button onclick="findForDelete()" class="bg-gray-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800">Find</button>
+                        <button onclick="resetDeleteForm()" class="px-4 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400">Refresh</button>
+                    </div>
+                </div>
+
+                <div id="delete-preview" class="hidden border p-4 rounded-lg bg-gray-50 space-y-3">
+                    <h3 class="font-bold text-gray-700">Matching Restaurant Found:</h3>
+                    <div id="delete-preview-content" class="text-sm"></div>
+                    <button onclick="confirmSoftDelete()" class="bg-red-600 text-white w-full py-2 rounded-lg font-semibold hover:bg-red-700">Confirm Soft Delete</button>
+                </div>
+                <div id="delete-feedback" class="text-center font-medium text-sm"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api/restaurants';
+
+        let currentSearchResults = [];
+        let currentVisibleFields = ['name', 'borough', 'cuisine', 'restaurant_id', 'average_score'];
+        let displayLimit = 5;
+        let selectedMongoId = null;
+        let selectedVersion = 1;
+        let selectedDeleteVersion = 1;
+
+        document.getElementById('search-query').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') performSearch();
+        });
+
+        function switchTab(tab) {
+            ['search', 'add', 'delete'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`btn-${t}`).className = "px-5 py-2 font-semibold rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300";
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`btn-${tab}`).className = "px-5 py-2 font-semibold rounded-lg bg-blue-600 text-white shadow";
+        }
+
+        async function performSearch() {
+            const field = document.getElementById('search-field').value;
+            const query = document.getElementById('search-query').value.trim();
+            currentVisibleFields = Array.from(document.querySelectorAll('.proj-field:checked')).map(cb => cb.value);
+
+            let url = `${API_URL}?`;
+            if (query) {
+                if (field === 'name') url += `query=${encodeURIComponent(query)}&`;
+                if (field === 'borough') url += `borough=${encodeURIComponent(query)}&`;
+                if (field === 'cuisine') url += `cuisine=${encodeURIComponent(query)}&`;
+            }
+
+            try {
+                const response = await fetch(url);
+                currentSearchResults = await response.json();
+                displayLimit = 5;
+                renderSearchResults();
+            } catch (err) {
+                console.error("Error fetching search results:", err);
+            }
+        }
+
+        function renderSearchResults() {
+            const container = document.getElementById('search-results');
+            container.innerHTML = '';
+
+            if (currentSearchResults.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">No matching restaurants found.</p>';
+                return;
+            }
+
+            const visibleResults = currentSearchResults.slice(0, displayLimit);
+
+            visibleResults.forEach(item => {
+                let card = document.createElement('div');
+                card.className = "border rounded-lg p-4 bg-gray-50 space-y-1 shadow-sm";
+                
+                let content = '';
+                currentVisibleFields.forEach(f => {
+                    let val = item[f];
+
+                    if (f === 'address') {
+                        if (typeof val === 'object' && val !== null) {
+                            let building = val.building || '';
+                            let street = val.street || '';
+                            let zipcode = val.zipcode || '';
+                            let mainPart = [building, street].filter(Boolean).join(' ');
+                            val = zipcode ? `${mainPart}, ${zipcode}` : (mainPart || 'N/A');
+                        } else {
+                            val = 'N/A';
+                        }
+                    } else if (f === 'average_score') {
+                        val = val !== undefined ? `${val}` : 'No ratings';
+                    } else if (f === 'grades') {
+                        if (Array.isArray(val) && val.length > 0) {
+                            val = val.map(g => `[${g.grade} - Score: ${g.score}]`).join(', ');
+                        } else {
+                            val = 'No grades logged';
+                        }
+                    }
+
+                    let label = f === 'restaurant_id' ? 'ID' : (f === 'average_score' ? 'Rating (Avg Score)' : f);
+                    content += `<p><span class="font-semibold capitalize">${label}:</span> ${val !== undefined && val !== null ? val : 'N/A'}</p>`;
+                });
+                card.innerHTML = content;
+                container.appendChild(card);
+            });
+
+            if (currentSearchResults.length > displayLimit) {
+                let btnContainer = document.createElement('div');
+                btnContainer.className = "flex gap-2 mt-4";
+                
+                let nextBtn = document.createElement('button');
+                nextBtn.className = "flex-1 bg-gray-200 py-2 rounded font-semibold hover:bg-gray-300";
+                nextBtn.textContent = "Next 5";
+                nextBtn.onclick = () => { displayLimit += 5; renderSearchResults(); };
+
+                let allBtn = document.createElement('button');
+                allBtn.className = "flex-1 bg-gray-200 py-2 rounded font-semibold hover:bg-gray-300";
+                allBtn.textContent = `Show All (${currentSearchResults.length})`;
+                allBtn.onclick = () => { displayLimit = currentSearchResults.length; renderSearchResults(); };
+
+                btnContainer.appendChild(nextBtn);
+                btnContainer.appendChild(allBtn);
+                container.appendChild(btnContainer);
+            }
+        }
+
+        async function checkRestaurantExists() {
+            const id = document.getElementById('upsert-id').value.trim();
+            const statusEl = document.getElementById('id-status');
+            const gradeSection = document.getElementById('grade-section');
+            
+            if (!id) {
+                document.getElementById('upsert-name').value = '';
+                document.getElementById('upsert-building').value = '';
+                document.getElementById('upsert-street').value = '';
+                document.getElementById('upsert-zipcode').value = '';
+                document.getElementById('upsert-cuisine').value = '';
+                document.getElementById('upsert-borough').value = '';
+                statusEl.textContent = '';
+                gradeSection.classList.add('hidden');
+                selectedMongoId = null;
+                selectedVersion = 1;
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?query=${id}`);
+                const data = await response.json();
+                const found = data.find(item => item.restaurant_id === id && !item.is_deleted);
+
+                if (found) {
+                    statusEl.textContent = "ID exists: Update Mode & Grade Logging Enabled";
+                    statusEl.className = "text-xs font-semibold text-amber-600 mt-1 block";
+                    selectedMongoId = found._id;
+                    selectedVersion = found.version !== undefined ? found.version : 1;
+                    document.getElementById('upsert-name').value = found.name || '';
+                    document.getElementById('upsert-building').value = (found.address && found.address.building) ? found.address.building : '';
+                    document.getElementById('upsert-street').value = (found.address && found.address.street) ? found.address.street : '';
+                    document.getElementById('upsert-zipcode').value = (found.address && found.address.zipcode) ? found.address.zipcode : '';
+                    document.getElementById('upsert-cuisine').value = found.cuisine || '';
+                    document.getElementById('upsert-borough').value = found.borough || '';
+                    gradeSection.classList.remove('hidden'); // Show grade section for existing records
+                } else {
+                    statusEl.textContent = "New ID: Will create new entry";
+                    statusEl.className = "text-xs font-semibold text-green-600 mt-1 block";
+                    selectedMongoId = null;
+                    gradeSection.classList.add('hidden'); // Hide grade section for new entries until created
+                    selectedVersion = 1;
+                }
+            } catch (err) {
+                console.error("Error checking ID:", err);
+            }
+        }
+
+        function resetUpsertForm() {
+            document.getElementById('upsert-id').value = '';
+            document.getElementById('upsert-name').value = '';
+            document.getElementById('upsert-building').value = '';
+            document.getElementById('upsert-street').value = '';
+            document.getElementById('upsert-zipcode').value = '';
+            document.getElementById('upsert-cuisine').value = '';
+            document.getElementById('upsert-borough').value = '';
+            document.getElementById('id-status').textContent = '';
+            document.getElementById('upsert-feedback').textContent = '';
+            document.getElementById('grade-feedback').textContent = '';
+            document.getElementById('new-grade-letter').value = '';
+            document.getElementById('new-grade-score').value = '';
+            document.getElementById('grade-section').classList.add('hidden');
+            selectedMongoId = null;
+            selectedVersion = 1;
+        }
+
+        async function submitUpsert() {
+            const id = document.getElementById('upsert-id').value.trim();
+            const name = document.getElementById('upsert-name').value.trim();
+            const building = document.getElementById('upsert-building').value.trim();
+            const street = document.getElementById('upsert-street').value.trim();
+            const zipcode = document.getElementById('upsert-zipcode').value.trim();
+            const cuisine = document.getElementById('upsert-cuisine').value.trim();
+            const borough = document.getElementById('upsert-borough').value.trim();
+            const feedback = document.getElementById('upsert-feedback');
+
+            if (!id || !name || !building || !street || !zipcode) {
+                feedback.textContent = "Error: Required fields cannot be empty!";
+                feedback.className = "text-center font-medium text-sm text-red-600";
+                return;
+            }
+
+            const payload = {
+                restaurant_id: id,
+                name: name,
+                address: { building, street, zipcode },
+                cuisine,
+                borough,
+                version: selectedVersion
+            };
+
+            try {
+                const checkRes = await fetch(`${API_URL}?query=${id}`);
+                const existingList = await checkRes.json();
+                const existing = existingList.find(item => item.restaurant_id === id);
+
+                let response;
+                if (existing) {
+                    response = await fetch(`${API_URL}/${existing._id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                const result = await response.json();
+                
+                if (response.status === 409) {
+                    feedback.textContent = result.error;
+                    feedback.className = "text-center font-medium text-sm text-red-600";
+                    return;
+                }
+
+                if (response.ok) {
+                    feedback.textContent = existing ? `Successfully updated restaurant ${id}!` : `Successfully added new restaurant ${id}!`;
+                    feedback.className = "text-center font-medium text-sm text-green-600";
+                    if (existing) {
+                        selectedVersion = result.newVersion || (selectedVersion + 1);
+                    } else {
+                        checkRestaurantExists(); // Re-trigger to reveal grade section once created
+                    }
+                } else {
+                    feedback.textContent = `Error: ${result.error || 'Operation failed'}`;
+                    feedback.className = "text-center font-medium text-sm text-red-600";
+                }
+            } catch (err) {
+                console.error("Error submitting:", err);
+                feedback.textContent = "Network error connecting to backend.";
+                feedback.className = "text-center font-medium text-sm text-red-600";
+            }
+        }
+
+        async function submitNewGrade() {
+            if (!selectedMongoId) return;
+            const grade = document.getElementById('new-grade-letter').value.trim();
+            const score = document.getElementById('new-grade-score').value.trim();
+            const feedback = document.getElementById('grade-feedback');
+
+            if (!grade || score === '') {
+                feedback.textContent = "Please provide both a grade letter and score.";
+                feedback.className = "text-center font-medium text-sm text-red-600";
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/${selectedMongoId}/grades`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ grade, score: Number(score), version: selectedVersion })
+                });
+
+                const result = await response.json();
+
+                if (response.status === 409) {
+                    feedback.textContent = result.error;
+                    feedback.className = "text-center font-medium text-sm text-red-600";
+                    return;
+                }
+
+                if (response.ok) {
+                    feedback.textContent = `Grade logged successfully! New Average Score: ${result.average_score}`;
+                    feedback.className = "text-center font-medium text-sm text-green-600";
+                    selectedVersion = result.newVersion || (selectedVersion + 1);
+                    document.getElementById('new-grade-letter').value = '';
+                    document.getElementById('new-grade-score').value = '';
+                } else {
+                    feedback.textContent = `Error: ${result.error || 'Failed to log grade'}`;
+                    feedback.className = "text-center font-medium text-sm text-red-600";
+                }
+            } catch (err) {
+                console.error("Error logging grade:", err);
+                feedback.textContent = "Network error connecting to backend.";
+                feedback.className = "text-center font-medium text-sm text-red-600";
+            }
+        }
+
+        function checkDeleteIdInput() {
+            const id = document.getElementById('delete-id').value.trim();
+            if (!id) {
+                resetDeleteForm();
+            }
+        }
+
+        function resetDeleteForm() {
+            document.getElementById('delete-id').value = '';
+            document.getElementById('delete-preview').classList.add('hidden');
+            document.getElementById('delete-feedback').textContent = '';
+            selectedMongoId = null;
+            selectedDeleteVersion = 1;
+        }
+
+        async function findForDelete() {
+            const id = document.getElementById('delete-id').value.trim();
+            const feedback = document.getElementById('delete-feedback');
+            const preview = document.getElementById('delete-preview');
+            const previewContent = document.getElementById('delete-preview-content');
+
+            if (!id) {
+                feedback.textContent = "Please enter a Restaurant ID.";
+                feedback.className = "text-center font-medium text-sm text-red-600";
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?query=${id}`);
+                const data = await response.json();
+                let found = data.find(item => item.restaurant_id === id && !item.is_deleted);
+
+                if (found) {
+                    selectedMongoId = found._id;
+                    selectedDeleteVersion = found.version !== undefined ? found.version : 1;
+                    previewContent.innerHTML = `<p><b>Name:</b> ${found.name}</p><p><b>Borough:</b> ${found.borough || 'N/A'}</p>`;
+                    preview.classList.remove('hidden');
+                    feedback.textContent = "";
+                } else {
+                    preview.classList.add('hidden');
+                    feedback.textContent = "No active restaurant found with that ID.";
+                    feedback.className = "text-center font-medium text-sm text-red-600";
+                }
+            } catch (err) {
+                console.error("Error finding record:", err);
+            }
+        }
+
+        async function confirmSoftDelete() {
+            if (!selectedMongoId) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${selectedMongoId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ version: selectedDeleteVersion })
+                });
+
+                const result = await response.json();
+                const feedback = document.getElementById('delete-feedback');
+
+                if (response.status === 409) {
+                    feedback.textContent = result.error;
+                    feedback.className = "text-center font-medium text-sm text-red-600";
+                    return;
+                }
+
+                if (response.ok) {
+                    document.getElementById('delete-preview').classList.add('hidden');
+                    feedback.textContent = `Restaurant has been successfully soft-deleted.`;
+                    feedback.className = "text-center font-medium text-sm text-green-600";
+                } else {
+                    feedback.textContent = `Error: ${result.error || 'Failed to soft-delete restaurant.'}`;
+                    feedback.className = "text-center font-medium text-sm text-red-600";
+                }
+            } catch (err) {
+                console.error("Error deleting:", err);
+            }
+        }
+
+        window.onload = () => performSearch();
+    </script>
+</body>
+</html>
